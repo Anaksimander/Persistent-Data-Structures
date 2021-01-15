@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "CppUnitTest.h"
-#include "..\PSD\PSD.cpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -10,7 +9,7 @@ namespace PSDTest
 	{
 	public:
 		TEST_METHOD(set_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -29,7 +28,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(pushback_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -51,7 +50,7 @@ namespace PSDTest
 
 
 		TEST_METHOD(popback_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -73,7 +72,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(insert_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -95,7 +94,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(erase_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -116,7 +115,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(clear_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -134,7 +133,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(get_size_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -144,12 +143,25 @@ namespace PSDTest
 
 
 		TEST_METHOD(get_test) {
-			persistentMass<int> myList;
+			PersistentMass<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
 
 			Assert::AreEqual(9, myList.get(9));
+		}
+
+		TEST_METHOD(into_push_back) {
+			PersistentMass<int> myList1;
+			PersistentMass<PersistentMass<int>> myList2;
+
+			myList2.push_back(myList1);
+			myList2.get(0).push_back(3);
+			Assert::AreEqual(3, myList2.get(0).get(0));
+			myList2.undo();
+			Assert::AreEqual(0, myList2.get(0).get_size());
+			myList2.redo();
+			Assert::AreEqual(3, myList2.get(0).get(0));
 		}
 	};
 
@@ -157,7 +169,7 @@ namespace PSDTest
 	{
 	public:
 		TEST_METHOD(set_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -176,7 +188,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(pushfront_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 9; i >= 0; i--)
 				myList.push_front(i);
@@ -197,7 +209,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(pushback_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -218,7 +230,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(popfront_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -240,7 +252,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(popback_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -262,7 +274,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(insert_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -284,7 +296,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(erase_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -305,7 +317,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(clear_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -323,7 +335,7 @@ namespace PSDTest
 		}
 
 		TEST_METHOD(get_size_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
@@ -333,7 +345,7 @@ namespace PSDTest
 
 
 		TEST_METHOD(get_test) {
-			persistentList<int> myList;
+			PersistentList<int> myList;
 
 			for (int i = 0; i < 10; i++)
 				myList.push_back(i);
