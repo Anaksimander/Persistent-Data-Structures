@@ -3,31 +3,39 @@
 #include <list>
 using namespace std;
 
+//декларейшен для persMass
+template<class T>
+class PersistentList;
+
 template<class T>
 class PersistentMass {
 public:
 	friend class PersistentMass;
-
+	//friend class PersistentList<PersistentMass<T>>;
+	//friend class PersistentList<T>;
 	//передача внутренней структуре указатель на внешнюю
 	template<class J>
 	friend void signal_inside(PersistentMass<PersistentMass<J>>* point_mass, PersistentMass<J>* box_mass);
-	template<class J>
-	friend void signal_inside(PersistentMass<J>* point_mass, J* box_mass);
-
 	//запись действия внутренней структуры во внешний вектор действий
-	void signal_outside(PersistentMass<T>* point_mass);
-	void signal_outside(PersistentMass<PersistentMass<T>>* point_mass);
-
+	template<class J>
+	friend void signal_outside(PersistentMass<J>* point_mass);
+	//undo-redo внешней структуры на внутреннюю
 	template<class J>
 	friend void undo_out(PersistentMass<PersistentMass<J>>* point_mass, PersistentMass<J>* elem, int vers);
 	template<class J>
-	friend void undo_out(PersistentMass<J>* point_mass, J* elem, int vers);
-
-	template<class J>
 	friend void redo_out(PersistentMass<PersistentMass<J>>* point_mass, PersistentMass<J>* elem, int vers);
+	//---
 	template<class J>
-	friend void redo_out(PersistentMass<J>* point_mass, J* elem, int vers);
-
+	friend void undo_out(PersistentMass<PersistentList<J>>* point_mass, PersistentList<J>* elem, int vers);
+	template<class J>
+	friend void redo_out(PersistentMass<PersistentList<J>>* point_mass, PersistentList<J>* elem, int vers);
+	//работа с внешним листом
+	template<class J>
+	friend void signal_inside(PersistentList<PersistentMass<J>>* point_list, PersistentMass<J>* box_mass);
+	template<class J>
+	friend void signal_outside(PersistentList<J>* point_list);
+	
+	//-----
 	PersistentMass();
 	T& set(const int i, const T& value);
 	void push_back(const T& value);
@@ -55,7 +63,9 @@ private:
 		bool undo;
 		vector<T> vector_data;
 	};
-	PersistentMass<PersistentMass<T>>* interior_mass;//укахатель на внешний контейнер
+	typename PersistentMass<PersistentMass<T>>* interior_mass;//укахатель на внешний контейнер
+	typename PersistentList<PersistentMass<T>>* interior_list;//укахатель на внешний контейнер 
+	
 	int version;
 	int use_version;
 	int size;
@@ -75,26 +85,46 @@ void signal_inside(PersistentMass<PersistentMass<J>>* point_mass, PersistentMass
 	box_mass->interior_mass = point_mass;
 	box_mass->kind = 3;
 }
-
+template<class J>// передает указатель внутр листу
+void signal_inside(PersistentMass<PersistentList<J>>* point_mass, PersistentList<J>* box_mass)
+{
+	box_mass->interior_mass = point_mass;
+	box_mass->kind = 3;
+}
 template<class J>
 void signal_inside(PersistentMass<J>* point_mass, J* box_mass) {}
 
-template<class T>//метод для наружной структуры который дергается влож структурами для записи изменения наруж структурой
-void PersistentMass<T>::signal_outside(PersistentMass<T>* point_mass)
-{
-	typename PersistentMass<PersistentMass<T>>::act box;
-	box.past_version = interior_mass->version;
-	interior_mass->use_version = box.past_version;
-	interior_mass->use_version = interior_mass->version;
-	box.version = interior_mass->version;
-	box.elem = this;
-	box.kind_act = 9;
-	box.undo = 0;
-	interior_mass->vector_act.push_back(box);
-}
 
-template<class T>
-void PersistentMass<T>::signal_outside(PersistentMass<PersistentMass<T>>* point_mass) {}
+template<class J>//метод для наружной структуры который дергается влож структурами для записи изменения наруж структурой
+void signal_outside(PersistentMass<J>* point_mass)
+{
+	
+	if (point_mass->interior_mass == nullptr) {
+		typename PersistentList<PersistentMass<J>>::act box;
+		box.past_version = point_mass->interior_list->use_version;
+		point_mass->interior_list->version++;
+		point_mass->interior_list->use_version = point_mass->interior_list->version;
+		box.version = point_mass->interior_list->version;
+		box.elem = point_mass;
+		box.kind_act = 9;
+		box.undo = 0;
+		point_mass->interior_list->vector_act.push_back(box);
+	}
+	else{
+		typename PersistentMass<PersistentMass<J>>::act box;
+		box.past_version = point_mass->interior_mass->use_version;
+		point_mass->interior_mass->version++;
+		point_mass->interior_mass->use_version = point_mass->interior_mass->version;
+		box.version = point_mass->interior_mass->version;
+		box.elem = point_mass;
+		box.kind_act = 9;
+		box.undo = 0;
+		point_mass->interior_mass->vector_act.push_back(box);
+	}
+	
+}
+template<class J>
+void signal_outside(PersistentMass<PersistentMass<J>>* point_mass) {}
 
 template<class J>
 void undo_out(PersistentMass<PersistentMass<J>>* point_mass, PersistentMass<J>* elem, int vers) {
@@ -108,7 +138,18 @@ void undo_out(PersistentMass<PersistentMass<J>>* point_mass, PersistentMass<J>* 
 	point_mass->vector_undo.push_back(box_undo);
 	point_mass->use_version = vers;
 }
-
+template<class J>
+void undo_out(PersistentMass<PersistentList<J>>* point_mass, PersistentList<J>* elem, int vers) {
+	typename PersistentMass<PersistentList<J>>::act box_undo;
+	box_undo.past_version = point_mass->use_version;
+	box_undo.version = vers;
+	box_undo.kind_act = 9;
+	box_undo.undo = 1;
+	box_undo.elem = elem;
+	box_undo.elem->undo();
+	point_mass->vector_undo.push_back(box_undo);
+	point_mass->use_version = vers;
+}
 template<class J>
 void undo_out(PersistentMass<J>* point_mass, J* elem, int vers) {}
 
@@ -124,7 +165,18 @@ void redo_out(PersistentMass<PersistentMass<J>>* point_mass, PersistentMass<J>* 
 	point_mass->vector_act.push_back(box_redo);
 	point_mass->use_version = vers;
 }
-
+template<class J>
+void redo_out(PersistentMass<PersistentList<J>>* point_mass, PersistentList<J>* elem, int vers) {
+	typename PersistentMass<PersistentList<J>>::act box_redo;
+	box_redo.past_version = point_mass->use_version;
+	box_redo.version = vers;
+	box_redo.kind_act = 9;
+	box_redo.undo = 0;
+	box_redo.elem = elem;
+	box_redo.elem->redo();
+	point_mass->vector_act.push_back(box_redo);
+	point_mass->use_version = vers;
+}
 template<class J>
 void redo_out(PersistentMass<J>* point_mass, J* elem, int vers) {}
 
@@ -133,7 +185,7 @@ PersistentMass<T>::PersistentMass()
 {
 	string name_type = typeid(T).name();
 	if (name_type.find("class PersistentMass") != (-1)) {
-		kind = 1;
+		kind = 2;
 	}
 	else if (name_type.find("class PersistentList") != (-1)) {
 		kind = 2;
@@ -142,6 +194,8 @@ PersistentMass<T>::PersistentMass()
 		kind = -1;
 	}
 
+	interior_mass = nullptr;
+	interior_list = nullptr;
 	version = 0;
 	use_version = 0;
 	size = 0;
@@ -165,7 +219,7 @@ T& PersistentMass<T>::set(const int i, const T& value)
 	vector_act.push_back(box);
 	vector_data[i] = value;
 
-	if (kind == 1) {
+	if (kind == 2) {
 		auto* box = &vector_data[i];
 		signal_inside(this, box);
 	}
@@ -193,7 +247,7 @@ void PersistentMass<T>::push_back(const T& value)
 	vector_data.push_back(value);
 	iter_b = vector_data.begin();
 	iter = 0;
-	if (kind ==1) {
+	if (kind ==2) {
 		T* box = &vector_data.back();
 		signal_inside(this, box);
 	}
@@ -245,7 +299,7 @@ int PersistentMass<T>::insert(const int i, const T& value)
 	vector_act.push_back(box);
 	vector_data.insert(iter_b, value);
 
-	if (kind == 1) {
+	if (kind == 2) {
 		auto* box = &*iter_b;
 		signal_inside(this, box);
 	}
@@ -495,6 +549,30 @@ template<class T>
 class PersistentList {
 public:
 	friend class PersistentList;
+	//friend class PersistentMass<PersistentList<T>>;
+	//friend class PersistentMass<T>;
+	//передача внутренней структуре указатель на внешнюю
+	template<class J>
+	friend void signal_inside(PersistentList<PersistentList<J>>* point_list, PersistentList<J>* box_list);
+	//сообщает внешней структуре о изменение
+	template<class J>
+	friend void signal_outside(PersistentList<J>* point_list);
+	//undo-redo внешней структуры на внутреннюю
+	template<class J>
+	friend void undo_out(PersistentList<PersistentList<J>>* point_list, PersistentList<J>* elem, int vers);
+	template<class J>
+	friend void redo_out(PersistentList<PersistentList<J>>* point_list, PersistentList<J>* elem, int vers);
+	//-----
+	template<class J>
+	friend void undo_out(PersistentList<PersistentMass<J>>* point_list, PersistentMass<J>* elem, int vers);
+	template<class J>
+	friend void redo_out(PersistentList<PersistentMass<J>>* point_list, PersistentMass<J>* elem, int vers);
+	//работа с внешним массивом
+	template<class J>// передает указатель внутр листу
+	friend void signal_inside(PersistentMass<PersistentList<J>>* point_mass, PersistentList<J>* box_mass);
+	template<class J>
+	friend void signal_outside(PersistentMass<J>* point_mass);
+	//----------------------
 	PersistentList();
 	T& set(const int i, const T& value);
 	void push_back(const T& value);
@@ -525,7 +603,8 @@ private:
 		bool undo;
 		list<T> list_data;
 	};
-	PersistentList<PersistentList<T>>* interior_list;//укахатель на внешний контейнер -- тут возможна ошибка
+	typename PersistentMass<PersistentList<T>>* interior_mass;//укахатель на внешний контейнер
+	typename PersistentList<PersistentList<T>>* interior_list;//укахатель на внешний контейнер 
 	int version;
 	int use_version;
 	int size;
@@ -533,84 +612,115 @@ private:
 	vector<act> vector_act;//история действий
 	vector<act> vector_undo;//история откатов
 	list<T> list_data;		//данные
-
 	typename list<T>::iterator iter_b;
 	int iter;
 
-	void signal_inside(PersistentList<PersistentList<T>>* point_list, PersistentList<T>* box_list);
-	void signal_inside(PersistentList<T>* point_list, T* box_list);
-
-	void signal_outside(PersistentList<T>* point_list);
-	void signal_outside(PersistentList<PersistentList<T>>* point_list);
-
-	void undo_out(PersistentList<PersistentList<T>>* point_list, PersistentList<T>* elem, int vers);
-	void undo_out(PersistentList<T>* point_list, T* elem, int vers);
-
-	void redo_out(PersistentList<PersistentList<T>>* point_list, PersistentList<T>* elem, int vers);
-	void redo_out(PersistentList<T>* point_list, T* elem, int vers);
-
+	
 	PersistentList<T>::act swap_data_part_undu(act box, bool undo);
 };
 
-template<class T>// передает вложенным структурам указатль на внешнюю для вызова signal_outside() у нее
-void PersistentList<T>::signal_inside(PersistentList<PersistentList<T>>* point_list, PersistentList<T>* box_list)
+
+template<class J>// передает вложенным структурам указатль на внешнюю для вызова signal_outside() у нее
+void signal_inside(PersistentList<PersistentList<J>>* point_list, PersistentList<J>* box_list)
 {
 	box_list->interior_list = point_list;
-	box_list->nested = 3;
+	box_list->kind = 3;
 }
+//передает указатель внут масиву на внешний лист
+template<class J>
+void signal_inside(PersistentList<PersistentMass<J>>* point_list, PersistentMass<J>* box_mass) {
+	box_mass->interior_list = point_list;
+	box_mass->kind = 3;
+}
+template<class J>
+void signal_inside(PersistentList<J>* point_list, J* box) {}
 
-template<class T>
-void PersistentList<T>::signal_inside(PersistentList<T>* point_list, T* box_list) {}
 
-template<class T>//метод для наружной структуры который дергается влож структурами для записи изменения наруж структурой
-void PersistentList<T>::signal_outside(PersistentList<T>* point_list)
+template<class J>//метод для наружной структуры который дергается влож структурами для записи изменения наруж структурой
+void signal_outside(PersistentList<J>* point_list)
 {
-	typename PersistentList<PersistentList<T>>::act box;
-	box.past_version = interior_list->version;
-	interior_list->use_version = box.past_version;
-	interior_list->use_version = interior_list->version;
-	box.version = interior_list->version;
-	box.elem = this;
-	box.kind_act = 9;
-	box.undo = 0;
-	interior_list->vector_act.push_back(box);
+	if (point_list->interior_mass == nullptr) {
+		typename PersistentList<PersistentList<J>>::act box;
+		box.past_version = point_list->interior_list->use_version;
+		point_list->interior_list->version++;
+		point_list->interior_list->use_version = point_list->interior_list->version;
+		box.version = point_list->interior_list->version;
+		box.elem = point_list;
+		box.kind_act = 9;
+		box.undo = 0;
+		point_list->interior_list->vector_act.push_back(box);
+	}
+	else {
+		typename PersistentMass<PersistentList<J>>::act box;
+		box.past_version = point_list->interior_mass->use_version;
+		point_list->interior_mass->version++;
+		point_list->interior_mass->use_version = point_list->interior_mass->version;
+		box.version = point_list->interior_mass->version;
+		box.elem = point_list;
+		box.kind_act = 9;
+		box.undo = 0;
+		point_list->interior_mass->vector_act.push_back(box);
+	}
 }
+template<class J>
+void signal_outside(PersistentList<PersistentList<J>>* point_list) {}
 
-template<class T>
-void PersistentList<T>::signal_outside(PersistentList<PersistentList<T>>* point_list) {}
 
-template<class T>
-void PersistentList<T>::undo_out(PersistentList<PersistentList<T>>* point_list, PersistentList<T>* elem, int vers) {
-	act box_undo;
+
+template<class J>
+void undo_out(PersistentList<PersistentList<J>>* point_list, PersistentList<J>* elem, int vers) {
+	typename PersistentList<PersistentList<J>>::act box_undo;
 	box_undo.past_version = point_list->use_version;
 	box_undo.version = vers;
 	box_undo.kind_act = 9;
 	box_undo.undo = 1;
 	box_undo.elem = elem;
-	box_undo.elem.undo();
+	box_undo.elem->undo();
 	point_list->vector_undo.push_back(box_undo);
 	point_list->use_version = vers;
 }
-
-template<class T>
-void PersistentList<T>::undo_out(PersistentList<T>* point_list, T* elem, int vers) {}
-
-
-template<class T>
-void PersistentList<T>::redo_out(PersistentList<PersistentList<T>>* point_list, PersistentList<T>* elem, int vers) {
-	act box_undo;
+template<class J>
+void undo_out(PersistentList<PersistentMass<J>>* point_list, PersistentMass<J>* elem, int vers) {
+	typename PersistentList<PersistentMass<J>>::act box_undo;
 	box_undo.past_version = point_list->use_version;
 	box_undo.version = vers;
 	box_undo.kind_act = 9;
-	box_undo.undo = 0;
+	box_undo.undo = 1;
 	box_undo.elem = elem;
-	box_undo.elem.redo();
+	box_undo.elem->undo();
 	point_list->vector_undo.push_back(box_undo);
 	point_list->use_version = vers;
 }
+template<class J>
+void undo_out(PersistentList<J>* point_list, J* elem, int vers) {}
 
-template<class T>
-void PersistentList<T>::redo_out(PersistentList<T>* point_list, T* elem, int vers) {}
+
+template<class J>
+void redo_out(PersistentList<PersistentList<J>>* point_list, PersistentList<J>* elem, int vers) {
+	typename PersistentList<PersistentList<J>>::act box_redo;
+	box_redo.past_version = point_list->use_version;
+	box_redo.version = vers;
+	box_redo.kind_act = 9;
+	box_redo.undo = 0;
+	box_redo.elem = elem;
+	box_redo.elem->redo();
+	point_list->vector_undo.push_back(box_redo);
+	point_list->use_version = vers;
+}
+template<class J>
+void redo_out(PersistentList<PersistentMass<J>>* point_list, PersistentMass<J>* elem, int vers) {
+	typename PersistentList<PersistentMass<J>>::act box_redo;
+	box_redo.past_version = point_list->use_version;
+	box_redo.version = vers;
+	box_redo.kind_act = 9;
+	box_redo.undo = 0;
+	box_redo.elem = elem;
+	box_redo.elem->redo();
+	point_list->vector_undo.push_back(box_redo);
+	point_list->use_version = vers;
+}
+template<class J>
+void redo_out(PersistentList<J>* point_list, J* elem, int vers) {}
 
 
 
@@ -619,7 +729,7 @@ PersistentList<T>::PersistentList()
 {
 	string name_type = typeid(T).name();
 	if (name_type.find("class PersistentMass") != (-1)) {
-		kind = 1;
+		kind = 2;
 	}
 	else if (name_type.find("class PersistentList") != (-1)) {
 		kind = 2;
@@ -1099,21 +1209,51 @@ void PersistentList<T>::redo()
 
 int main()
 {
-	//int num = 5;
-	//transactions<int> tr;
+	/*PersistentMass<int> mass;
+	mass.push_back(1);
+	mass.undo();
+	mass.redo();
+	PersistentList<int> list;
+	list.push_back(1);
+	list.undo();
+	list.redo();*/
 
-	//tr.run(&num);
-	//cout << tr.get() << endl;
-	//tr.get() = 15;
-	//num = 10;
-	//cout << tr.get() << endl;
-	PersistentMass<int> myList1;
-	PersistentMass<PersistentMass<int>> myList2;
-	myList2.push_back(myList1);
-	myList2.get(0).push_back(2);
-	cout << myList2.get(0).get(0) << endl;
-	myList2.undo();
-	myList2.redo();
+	PersistentMass<int> myMass;
+	PersistentMass<PersistentMass<int>> Mass;
+	Mass.push_back(myMass);
+	Mass.get(0).push_back(2);
+	Mass.undo();
+	Mass.redo();
+
+	/*PersistentList<int> myList;
+	PersistentList<PersistentList<int>> List;
+	List.push_back(myList);
+	List.get(0).push_back(2);
+	List.undo();
+	List.redo(); */
+
+	/*PersistentMass<int> myMass1;
+	PersistentList<PersistentMass<int>> myList1;
+
+	
+	myList1.push_back(myMass1);
+	myList1.get(0).push_back(2);
+	cout << myList1.get(0).get(0) << endl;
+	myList1.undo();
+	cout << myList1.get(0).get_size() << endl;
+	myList1.redo();
+	cout << myList1.get(0).get(0) << endl;*/
+
+	/*PersistentMass< PersistentList<int>> myMass1;
+	PersistentList<int> myList1;
+
+	myMass1.push_back(myList1);
+	myMass1.get(0).push_back(2);
+	cout << myMass1.get(0).get(0) << endl;
+	myMass1.undo();
+	cout << myMass1.get(0).get_size() << endl;
+	myMass1.redo();
+	cout << myMass1.get(0).get(0) << endl;*/
 	return 0;
 }
 
