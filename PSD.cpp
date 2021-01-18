@@ -3,8 +3,8 @@
 #include <list>
 using namespace std;
  
- 
-//декларейшен для persMass
+
+//РґРµРєР»Р°СЂРµР№С€РµРЅ РґР»СЏ persMass
 template<class T>
 class PersistentList;
 
@@ -13,7 +13,7 @@ class PersistentMass {
 public:
 	friend class PersistentMass;
 	friend class PersistentList<PersistentMass<T>>;
-	//передача внутренней структуре указатель на внешнюю
+	//РїРµСЂРµРґР°С‡Р° РІРЅСѓС‚СЂРµРЅРЅРµР№ СЃС‚СЂСѓРєС‚СѓСЂРµ СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РІРЅРµС€РЅСЋСЋ
 	template<class J>
 	friend void signal_outside(PersistentMass<J>* point_mass);
 	template<class J>
@@ -36,30 +36,30 @@ private:
 	*/
 	class act {
 	public:
-		T past_elem;		//предыдущее значение элемента
-		T present_elem;		//нынешнее значение
-		T* elem;			//указатель на элемент для undo для вложенности
-		int index_elem;		//индекс измененного элемента
-		int kind_act;		//вид изменения 1-set 
+		T past_elem;		//РїСЂРµРґС‹РґСѓС‰РµРµ Р·РЅР°С‡РµРЅРёРµ СЌР»РµРјРµРЅС‚Р°
+		T present_elem;		//РЅС‹РЅРµС€РЅРµРµ Р·РЅР°С‡РµРЅРёРµ
+		T* elem;			//СѓРєР°Р·Р°С‚РµР»СЊ РЅР° СЌР»РµРјРµРЅС‚ РґР»СЏ undo РґР»СЏ РІР»РѕР¶РµРЅРЅРѕСЃС‚Рё
+		int index_elem;		//РёРЅРґРµРєСЃ РёР·РјРµРЅРµРЅРЅРѕРіРѕ СЌР»РµРјРµРЅС‚Р°
+		int kind_act;		//РІРёРґ РёР·РјРµРЅРµРЅРёСЏ 1-set 
 		int past_version;
-		int version;		//версия которую создают
+		int version;		//РІРµСЂСЃРёСЏ РєРѕС‚РѕСЂСѓСЋ СЃРѕР·РґР°СЋС‚
 		bool undo;
 		vector<T> vector_data;
 	};
-	typename PersistentMass<PersistentMass<T>>* interior_mass;//укахатель на внешний контейнер
-	typename PersistentList<PersistentMass<T>>* interior_list;//укахатель на внешний контейнер 
+	typename PersistentMass<PersistentMass<T>>* interior_mass;//СѓРєР°С…Р°С‚РµР»СЊ РЅР° РІРЅРµС€РЅРёР№ РєРѕРЅС‚РµР№РЅРµСЂ
+	typename PersistentList<PersistentMass<T>>* interior_list;//СѓРєР°С…Р°С‚РµР»СЊ РЅР° РІРЅРµС€РЅРёР№ РєРѕРЅС‚РµР№РЅРµСЂ 
 	
 	int version;
 	int use_version;
 	int size;
-	int kind;							//тип контейнера
-	vector<act> vector_act;				//история действий
-	vector<act> vector_undo;			//история откатов
-	vector<T> vector_data;				//данные
+	int kind;							//С‚РёРї РєРѕРЅС‚РµР№РЅРµСЂР°
+	vector<act> vector_act;				//РёСЃС‚РѕСЂРёСЏ РґРµР№СЃС‚РІРёР№
+	vector<act> vector_undo;			//РёСЃС‚РѕСЂРёСЏ РѕС‚РєР°С‚РѕРІ
+	vector<T> vector_data;				//РґР°РЅРЅС‹Рµ
 	typename vector<T>::iterator iter_b;
 	int iter;
 
-	PersistentMass<T>::act swap_data_part_undu(act box, bool undo); //передача данных для сокращения кода undo redo
+	PersistentMass<T>::act swap_data_part_undu(act box, bool undo); //РїРµСЂРµРґР°С‡Р° РґР°РЅРЅС‹С… РґР»СЏ СЃРѕРєСЂР°С‰РµРЅРёСЏ РєРѕРґР° undo redo
 	template<class J>
 	void signal_inside(PersistentMass<J>* box_mass);
 	template<class J>
@@ -162,7 +162,7 @@ template<class J>
 void PersistentMass<T>::redo_out(J* elem, int vers) {}
 
 
-template<class J>//метод для наружной структуры который дергается влож структурами для записи изменения наруж структурой
+template<class J>//РјРµС‚РѕРґ РґР»СЏ РЅР°СЂСѓР¶РЅРѕР№ СЃС‚СЂСѓРєС‚СѓСЂС‹ РєРѕС‚РѕСЂС‹Р№ РґРµСЂРіР°РµС‚СЃСЏ РІР»РѕР¶ СЃС‚СЂСѓРєС‚СѓСЂР°РјРё РґР»СЏ Р·Р°РїРёСЃРё РёР·РјРµРЅРµРЅРёСЏ РЅР°СЂСѓР¶ СЃС‚СЂСѓРєС‚СѓСЂРѕР№
 void signal_outside(PersistentMass<J>* point_mass)
 {
 	
@@ -401,7 +401,7 @@ void PersistentMass<T>::undo()
 {
 	act box = vector_act.back();
 	vector_act.pop_back();
-	//определение вида действия
+	//РѕРїСЂРµРґРµР»РµРЅРёРµ РІРёРґР° РґРµР№СЃС‚РІРёСЏ
 	switch (box.kind_act)
 	{
 	case 1: {//set
@@ -483,7 +483,7 @@ void PersistentMass<T>::redo()
 {
 	act box = vector_undo.back();
 	vector_undo.pop_back();
-	//определение вида действия
+	//РѕРїСЂРµРґРµР»РµРЅРёРµ РІРёРґР° РґРµР№СЃС‚РІРёСЏ
 	switch (box.kind_act)
 	{
 	case 1: {//set
@@ -567,7 +567,7 @@ public:
 
 	template<class J>
 	friend void signal_outside(PersistentList<J>* point_list);
-	//работа с внешним массивом
+	//СЂР°Р±РѕС‚Р° СЃ РІРЅРµС€РЅРёРј РјР°СЃСЃРёРІРѕРј
 	template<class J>
 	friend void signal_outside(PersistentMass<J>* point_mass);
 	//----------------------
@@ -591,25 +591,25 @@ private:
 	*/
 	class act {
 	public:
-		T past_elem;		//предыдущее значение элемента
-		T present_elem;		//нынешнее значение
-		T* elem;			//указатель на элемент для undo для вложенности
-		int index_elem;		//индекс измененного элемента
-		int kind_act;		//вид изменения 1-set 
+		T past_elem;		//РїСЂРµРґС‹РґСѓС‰РµРµ Р·РЅР°С‡РµРЅРёРµ СЌР»РµРјРµРЅС‚Р°
+		T present_elem;		//РЅС‹РЅРµС€РЅРµРµ Р·РЅР°С‡РµРЅРёРµ
+		T* elem;			//СѓРєР°Р·Р°С‚РµР»СЊ РЅР° СЌР»РµРјРµРЅС‚ РґР»СЏ undo РґР»СЏ РІР»РѕР¶РµРЅРЅРѕСЃС‚Рё
+		int index_elem;		//РёРЅРґРµРєСЃ РёР·РјРµРЅРµРЅРЅРѕРіРѕ СЌР»РµРјРµРЅС‚Р°
+		int kind_act;		//РІРёРґ РёР·РјРµРЅРµРЅРёСЏ 1-set 
 		int past_version;
-		int version;		//версия которую создают
+		int version;		//РІРµСЂСЃРёСЏ РєРѕС‚РѕСЂСѓСЋ СЃРѕР·РґР°СЋС‚
 		bool undo;
 		list<T> list_data;
 	};
-	typename PersistentMass<PersistentList<T>>* interior_mass;//укахатель на внешний контейнер
-	typename PersistentList<PersistentList<T>>* interior_list;//укахатель на внешний контейнер 
+	typename PersistentMass<PersistentList<T>>* interior_mass;//СѓРєР°С…Р°С‚РµР»СЊ РЅР° РІРЅРµС€РЅРёР№ РєРѕРЅС‚РµР№РЅРµСЂ
+	typename PersistentList<PersistentList<T>>* interior_list;//СѓРєР°С…Р°С‚РµР»СЊ РЅР° РІРЅРµС€РЅРёР№ РєРѕРЅС‚РµР№РЅРµСЂ 
 	int version;
 	int use_version;
 	int size;
-	int kind;				//тип контейнера
-	vector<act> vector_act;//история действий
-	vector<act> vector_undo;//история откатов
-	list<T> list_data;		//данные
+	int kind;				//С‚РёРї РєРѕРЅС‚РµР№РЅРµСЂР°
+	vector<act> vector_act;//РёСЃС‚РѕСЂРёСЏ РґРµР№СЃС‚РІРёР№
+	vector<act> vector_undo;//РёСЃС‚РѕСЂРёСЏ РѕС‚РєР°С‚РѕРІ
+	list<T> list_data;		//РґР°РЅРЅС‹Рµ
 	typename list<T>::iterator iter_b;
 	int iter;
 
@@ -716,7 +716,7 @@ template<class J>
 void PersistentList<T>::redo_out(J* elem, int vers) {}
 //---------
 
-template<class J>//метод для наружной структуры который дергается влож структурами для записи изменения наруж структурой
+template<class J>//РјРµС‚РѕРґ РґР»СЏ РЅР°СЂСѓР¶РЅРѕР№ СЃС‚СЂСѓРєС‚СѓСЂС‹ РєРѕС‚РѕСЂС‹Р№ РґРµСЂРіР°РµС‚СЃСЏ РІР»РѕР¶ СЃС‚СЂСѓРєС‚СѓСЂР°РјРё РґР»СЏ Р·Р°РїРёСЃРё РёР·РјРµРЅРµРЅРёСЏ РЅР°СЂСѓР¶ СЃС‚СЂСѓРєС‚СѓСЂРѕР№
 void signal_outside(PersistentList<J>* point_list)
 {
 	if (point_list->interior_mass == nullptr) {
@@ -1024,7 +1024,7 @@ void PersistentList<T>::undo()
 {
 	act box = vector_act.back();
 	vector_act.pop_back();
-	//определение вида действия
+	//РѕРїСЂРµРґРµР»РµРЅРёРµ РІРёРґР° РґРµР№СЃС‚РІРёСЏ
 	switch (box.kind_act)
 	{
 	case 1: {//set
@@ -1135,7 +1135,7 @@ void PersistentList<T>::redo()
 {
 	act box = vector_undo.back();
 	vector_undo.pop_back();
-	//определение вида действия
+	//РѕРїСЂРµРґРµР»РµРЅРёРµ РІРёРґР° РґРµР№СЃС‚РІРёСЏ
 	switch (box.kind_act)
 	{
 	case 1: {//set
