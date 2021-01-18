@@ -2,7 +2,8 @@
 #include <vector>
 #include <list>
 using namespace std;
-
+ 
+ 
 //декларейшен для persMass
 template<class T>
 class PersistentList;
