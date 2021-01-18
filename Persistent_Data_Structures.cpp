@@ -14,7 +14,7 @@ public:
 	class FatNodes_elem
 	{
 	public:
-		T value = 0 ;
+		T value;
 		int version = 0;
 	};
 
@@ -27,11 +27,11 @@ public:
 	void push_back(T value);					//добавить элемент в массив
 	void pop_back();							//добавить элемент в массив
 	void empty();								//опустошить массив
-	T& operator[](const int i);					//перегрузка оператора[]	
+	T& operator[](const int i);					//перегрузка оператора[]
 	
 protected:
 	int version;								//последняя версия структуры, счетчик
-
+	int kind;
 	int maxSize;								//максимальный размер массива (для реализации функций которые манипулируют размером массива)
 	int SizePersistMass;							//размер массива этой версии 
 	vector<int> vectroSizePersistMass;			//размер массива всех версий
@@ -60,13 +60,20 @@ PersistMass<T>::PersistMass()
 template <class T>
 PersistMass<T>::PersistMass(int n)
 {
+	string name_type = typeid(T).name();
+	if (name_type.find("class PersistentMass") != (-1)) {
+		kind = 1;
+	}
+	else {
+		kind = -1;
+	}
 	version = 0;
 	SizePersistMass = n;
 	vectroSizePersistMass.push_back(n);
 	maxSize = n;
 	vectorFatNode.resize(n);
 
-	if (typeid(T) == typeid(PersistMass<int>)) {
+	if (kind == 1) {
 		FatNodes_elem box;
 		for (int i = 0; i < n; i++) {
 			vectorFatNode[i].push_back(box);
@@ -112,18 +119,10 @@ T PersistMass<T>::get(int i)
 template <class T>
 T PersistMass<T>::get(int i, int inVersion)
 {
-
-	
-	//версия не может быть маньше 0
-	if (inVersion < 0) {
-		exit(1);
-	}
 	//запрашиваемая версия не может быть больше чем послед.верс. массива
 	if (inVersion > version) {
 		exit(1);
 	}
-	if (i < 0 || i >= vectroSizePersistMass[inVersion])
-		exit(1);
 
 	int size = vectorFatNode[i].size() - 1;
 	//как только inVersion больше чем 
@@ -199,7 +198,7 @@ void PersistMass<T>::empty()
 int main()
 {
 
-	PersistMass<int> mass1;//выделение памяти
+	PersistMass<int> mass1;
 	mass1.push_back(1);
 	mass1.push_back(2);
 	mass1.push_back(3);
@@ -231,29 +230,9 @@ int main()
 	cout << "2 elem: " << mass1.get(1) << endl;
 	cout << "3 elem: " << mass1.get(2) << "\n" << endl;
 
-	//PersistMass <PersistMass<int>> mass2(2);//выделение памяти
-	//mass2.set(0, mass1);
 
-	//cout << "used 'set' :" << endl;
-	//cout << "output elemrnt 0 : " << mass1[0] << endl;
-	//cout << "output elemrnt 1 : " << mass1.get(1) << endl;
-	//cout << "===========================" << endl;
-	// 
-	//mass1.set(0, 1);
-	//cout << "output elemrnt 0 : " << mass1[0] << endl;
-	//cout << "output elemrnt 1 : " << mass1.get(1) << endl;
-	//cout << "===========================" << endl;
-	//mass1.set(1, 2);
-	//cout << "output elemrnt 0 : " << mass1[0] << endl;
-	//cout << "output elemrnt 1 : " << mass1.get(1) << endl;
-	//cout << "===========================" << endl;
-	//mass1.set(0, 3);
-	////mass1[0] = 0;
-	//cout << "output elemrnt 0 : " << mass1[0] << endl;
-	//cout << "output elemrnt 1 : " << mass1.get(1) << endl;
-	//cout << "===========================\n" << endl;
-
-
+	typename PersistMass<PersistMass<int>> mass2(3);
+	mass2.push_back(mass1);
 	return 0;
 }
 
