@@ -2,7 +2,6 @@
 #include <vector>
 #include <list>
 using namespace std;
- 
 
 //декларейшен для persMass
 template<class T>
@@ -231,7 +230,7 @@ T& PersistentMass<T>::set(const int i, const T& value)
 	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data[i] = value;
-
+	vector_undo.clear();
 	if (kind == 2 || kind == 1) {
 		auto* box = &vector_data[i];
 		signal_inside(box);
@@ -260,6 +259,7 @@ void PersistentMass<T>::push_back(const T& value)
 	vector_data.push_back(value);
 	iter_b = vector_data.begin();
 	iter = 0;
+	vector_undo.clear();
 	if (kind ==2 || kind == 1) {
 		T* box = &vector_data.back();
 		signal_inside(box);
@@ -284,7 +284,7 @@ void PersistentMass<T>::pop_back()
 	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data.pop_back();
-
+	vector_undo.clear();
 	if (kind == 3) {
 		signal_outside(this);
 	}
@@ -311,7 +311,7 @@ int PersistentMass<T>::insert(const int i, const T& value)
 	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data.insert(iter_b, value);
-
+	vector_undo.clear();
 	if (kind == 2 || kind == 1) {
 		auto* box = &*iter_b;
 		signal_inside(box);
@@ -343,6 +343,7 @@ int PersistentMass<T>::erase(const int i)
 	vector_data.erase(iter_b);
 	iter_b = vector_data.begin();
 	iter = 0;
+	vector_undo.clear();
 	if (kind == 3) {
 		signal_outside(this);
 	}
@@ -364,6 +365,7 @@ void PersistentMass<T>::clear()
 	box.vector_data = vector_data;
 	vector_act.push_back(box);
 	vector_data.clear();
+	vector_undo.clear();
 	if (kind == 3) {
 		signal_outside(this);
 	}
@@ -792,6 +794,7 @@ T& PersistentList<T>::set(const int i, const T& value)
 	box.undo = 0;
 	vector_act.push_back(box);
 	*iter_b = value;
+	vector_undo.clear();
 
 	if (kind == 2 || kind == 1) {
 		auto* box = &*iter_b;
@@ -822,7 +825,7 @@ void PersistentList<T>::push_back(const T& value)
 	list_data.push_back(value);
 	iter_b = list_data.begin();
 	iter = 0;
-
+	vector_undo.clear();
 	if (kind == 2 || kind == 1) {
 		auto* box = &list_data.back();
 		signal_inside(box);
@@ -849,7 +852,7 @@ void PersistentList<T>::push_front(const T& value)
 	list_data.push_front(value);
 	iter_b = list_data.begin();
 	iter = 0;
-
+	vector_undo.clear();
 	if (kind == 2 || kind == 1) {
 		auto* box = &list_data.front();
 		signal_inside(box);
@@ -874,6 +877,7 @@ void PersistentList<T>::pop_back()
 	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.pop_back();
+	vector_undo.clear();
 	 if (kind == 3) {
 		signal_outside(this);
 	}
@@ -895,6 +899,7 @@ void PersistentList<T>::pop_front()
 	list_data.pop_front();
 	iter_b = list_data.begin();
 	iter = 0;
+	vector_undo.clear();
 	 if (kind == 3) {
 		signal_outside(this);
 	}
@@ -921,7 +926,7 @@ int PersistentList<T>::insert(const int i, const T& value)
 	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.insert(iter_b, value);
-
+	vector_undo.clear();
 	if (kind == 2 || kind == 1) {
 		auto* box = &*iter_b;
 		signal_inside(box);
@@ -953,7 +958,7 @@ int PersistentList<T>::erase(const int i)
 	list_data.erase(iter_b);
 	iter_b = list_data.begin();
 	iter = 0;
-
+	vector_undo.clear();
 	 if (kind == 3) {
 		signal_outside(this);
 	}
@@ -975,6 +980,7 @@ void PersistentList<T>::clear()
 	box.list_data = list_data;
 	vector_act.push_back(box);
 	list_data.clear();
+	vector_undo.clear();
 	if (kind == 3) {
 		signal_outside(this);
 	}
