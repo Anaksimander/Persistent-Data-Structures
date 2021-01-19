@@ -25,7 +25,8 @@ public:
 	int insert(const int i, const T& value);
 	int erase(const int i);
 	void clear();
-	int get_size();
+	const int get_version();
+	const int get_size();
 	T& get(int i);
 	void undo();
 	void redo();
@@ -35,14 +36,13 @@ private:
 	*/
 	class act {
 	public:
-		T past_elem;		//предыдущее значение элемента
-		T present_elem;		//нынешнее значение
-		T* elem;			//указатель на элемент для undo для вложенности
-		int index_elem;		//индекс измененного элемента
-		int kind_act;		//вид изменения 1-set 
-		int past_version;
-		int version;		//версия которую создают
-		bool undo;
+		T past_elem = {};		//предыдущее значение элемента
+		T present_elem = {};	//нынешнее значение
+		T* elem = {};			//указатель на элемент для undo для вложенности
+		int index_elem = {};	//индекс измененного элемента
+		int kind_act = {};		//вид изменения 1-set 
+		int past_version = {};
+		int version = {};		//версия которую создают
 		vector<T> vector_data;
 	};
 	typename PersistentMass<PersistentMass<T>>* interior_mass;//укахатель на внешний контейнер
@@ -58,7 +58,7 @@ private:
 	typename vector<T>::iterator iter_b;
 	int iter;
 
-	PersistentMass<T>::act swap_data_part_undu(act box, bool undo); //передача данных для сокращения кода undo redo
+	PersistentMass<T>::act swap_data_part_undu(act box); //передача данных для сокращения кода undo redo
 	template<class J>
 	void signal_inside(PersistentMass<J>* box_mass);
 	template<class J>
@@ -100,6 +100,7 @@ template<class T>
 template<class J>
 void PersistentMass<T>::signal_inside(J* box) {}
 
+
 template<class T>
 template<class J>
 void PersistentMass<T>::undo_out(PersistentMass<J>* elem, int vers) {
@@ -107,7 +108,6 @@ void PersistentMass<T>::undo_out(PersistentMass<J>* elem, int vers) {
 	box_undo.past_version = this->use_version;
 	box_undo.version = vers;
 	box_undo.kind_act = 9;
-	box_undo.undo = 1;
 	box_undo.elem = elem;
 	box_undo.elem->undo();
 	this->vector_undo.push_back(box_undo);
@@ -120,7 +120,6 @@ void PersistentMass<T>::undo_out(PersistentList<J>* elem, int vers) {
 	box_undo.past_version = this->use_version;
 	box_undo.version = vers;
 	box_undo.kind_act = 9;
-	box_undo.undo = 1;
 	box_undo.elem = elem;
 	box_undo.elem->undo();
 	this->vector_undo.push_back(box_undo);
@@ -137,7 +136,6 @@ void PersistentMass<T>::redo_out(PersistentMass<J>* elem, int vers) {
 	box_redo.past_version = this->use_version;
 	box_redo.version = vers;
 	box_redo.kind_act = 9;
-	box_redo.undo = 0;
 	box_redo.elem = elem;
 	box_redo.elem->redo();
 	this->vector_act.push_back(box_redo);
@@ -150,7 +148,6 @@ void PersistentMass<T>::redo_out(PersistentList<J>* elem, int vers) {
 	box_redo.past_version = this->use_version;
 	box_redo.version = vers;
 	box_redo.kind_act = 9;
-	box_redo.undo = 0;
 	box_redo.elem = elem;
 	box_redo.elem->redo();
 	this->vector_act.push_back(box_redo);
@@ -173,7 +170,6 @@ void signal_outside(PersistentMass<J>* point_mass)
 		box.version = point_mass->interior_list->version;
 		box.elem = point_mass;
 		box.kind_act = 9;
-		box.undo = 0;
 		point_mass->interior_list->vector_act.push_back(box);
 	}
 	else{
@@ -184,7 +180,6 @@ void signal_outside(PersistentMass<J>* point_mass)
 		box.version = point_mass->interior_mass->version;
 		box.elem = point_mass;
 		box.kind_act = 9;
-		box.undo = 0;
 		point_mass->interior_mass->vector_act.push_back(box);
 	}
 }
@@ -200,7 +195,7 @@ PersistentMass<T>::PersistentMass()
 		kind = 1;
 	}
 	else if (name_type.find("class PersistentList") != (-1)) {
-		kind = 2;
+		kind = 1;
 	}
 	else {
 		kind = -1;
@@ -227,11 +222,10 @@ T& PersistentMass<T>::set(const int i, const T& value)
 	version++;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data[i] = value;
 	vector_undo.clear();
-	if (kind == 2 || kind == 1) {
+	if (kind == 1) {
 		auto* box = &vector_data[i];
 		signal_inside(box);
 	}
@@ -254,13 +248,12 @@ void PersistentMass<T>::push_back(const T& value)
 
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data.push_back(value);
 	iter_b = vector_data.begin();
 	iter = 0;
 	vector_undo.clear();
-	if (kind ==2 || kind == 1) {
+	if (kind == 1) {
 		T* box = &vector_data.back();
 		signal_inside(box);
 	}
@@ -281,7 +274,6 @@ void PersistentMass<T>::pop_back()
 	size--;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data.pop_back();
 	vector_undo.clear();
@@ -308,11 +300,10 @@ int PersistentMass<T>::insert(const int i, const T& value)
 	size++;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data.insert(iter_b, value);
 	vector_undo.clear();
-	if (kind == 2 || kind == 1) {
+	if (kind == 1) {
 		auto* box = &*iter_b;
 		signal_inside(box);
 	}
@@ -338,7 +329,6 @@ int PersistentMass<T>::erase(const int i)
 	size--;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	vector_data.erase(iter_b);
 	iter_b = vector_data.begin();
@@ -361,7 +351,6 @@ void PersistentMass<T>::clear()
 	size = 0;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	box.vector_data = vector_data;
 	vector_act.push_back(box);
 	vector_data.clear();
@@ -372,7 +361,13 @@ void PersistentMass<T>::clear()
 }
 
 template<class T>
-int PersistentMass<T>::get_size()
+const int PersistentMass<T>::get_version()
+{
+	return vector_act.size()-1;
+}
+
+template<class T>
+const int PersistentMass<T>::get_size()
 {
 	return size;
 }
@@ -383,7 +378,7 @@ T& PersistentMass<T>::get(int i) {
 }
 
 template<class T>
-typename PersistentMass<T>::act PersistentMass<T>::swap_data_part_undu(act box, bool undo) {
+typename PersistentMass<T>::act PersistentMass<T>::swap_data_part_undu(act box) {
 	act box_undo;
 
 	box_undo.past_version = use_version;
@@ -394,7 +389,6 @@ typename PersistentMass<T>::act PersistentMass<T>::swap_data_part_undu(act box, 
 	box_undo.present_elem = box.past_elem;
 	box_undo.index_elem = box.index_elem;
 	box_undo.kind_act = box.kind_act;
-	box_undo.undo = undo;
 	return box_undo;
 }
 
@@ -410,7 +404,7 @@ void PersistentMass<T>::undo()
 
 		vector_data[box.index_elem] = box.past_elem;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -418,7 +412,7 @@ void PersistentMass<T>::undo()
 		vector_data.pop_back();
 		size--;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -426,7 +420,7 @@ void PersistentMass<T>::undo()
 		vector_data.push_back(box.past_elem);
 		size++;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -439,7 +433,7 @@ void PersistentMass<T>::undo()
 		vector_data.erase(iter_b);
 		size--;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -452,7 +446,7 @@ void PersistentMass<T>::undo()
 		vector_data.insert(iter_b, box.past_elem);
 		size++;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -463,7 +457,6 @@ void PersistentMass<T>::undo()
 		box_undo.version = use_version;
 		box_undo.vector_data = box.vector_data;
 		box_undo.kind_act = box.kind_act;
-		box_undo.undo = 1;
 		vector_undo.push_back(box_undo);
 
 		use_version = box.past_version;
@@ -495,7 +488,7 @@ void PersistentMass<T>::redo()
 		}
 		*iter_b = box.past_elem;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -503,7 +496,7 @@ void PersistentMass<T>::redo()
 		vector_data.push_back(box.past_elem);
 		size++;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -511,7 +504,7 @@ void PersistentMass<T>::redo()
 		vector_data.pop_back();
 		size--;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -523,7 +516,7 @@ void PersistentMass<T>::redo()
 		vector_data.insert(iter_b, box.past_elem);
 		size++;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -535,7 +528,7 @@ void PersistentMass<T>::redo()
 		vector_data.erase(iter_b);
 		size--;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -548,7 +541,6 @@ void PersistentMass<T>::redo()
 		box_redo.past_version = use_version;
 		box_redo.version = use_version;
 		box_redo.vector_data = box.vector_data;
-		box_redo.undo = 0;
 	}
 	case 9: {//undo_out
 		redo_out(box.elem, box.past_version);
@@ -565,7 +557,6 @@ class PersistentList {
 public:
 	friend class PersistentList;
 	friend class PersistentMass<PersistentList<T>>;
-	//friend class PersistentMass<T>;
 
 	template<class J>
 	friend void signal_outside(PersistentList<J>* point_list);
@@ -582,8 +573,8 @@ public:
 	int insert(const int i, const T& value);
 	int erase(const int i);
 	void clear();
-	int get_version();
-	int get_size();
+	const int get_version();
+	const int get_size();
 	T& get(int i);
 	void undo();
 	void redo();
@@ -593,14 +584,13 @@ private:
 	*/
 	class act {
 	public:
-		T past_elem;		//предыдущее значение элемента
-		T present_elem;		//нынешнее значение
-		T* elem;			//указатель на элемент для undo для вложенности
-		int index_elem;		//индекс измененного элемента
-		int kind_act;		//вид изменения 1-set 
-		int past_version;
-		int version;		//версия которую создают
-		bool undo;
+		T past_elem = {};		//предыдущее значение элемента
+		T present_elem = {};	//нынешнее значение
+		T* elem = {};			//указатель на элемент для undo для вложенности
+		int index_elem = {};	//индекс измененного элемента
+		int kind_act = {};		//вид изменения 1-set 
+		int past_version = {};
+		int version = {};		//версия которую создают
 		list<T> list_data;
 	};
 	typename PersistentMass<PersistentList<T>>* interior_mass;//укахатель на внешний контейнер
@@ -615,7 +605,7 @@ private:
 	typename list<T>::iterator iter_b;
 	int iter;
 
-	PersistentList<T>::act swap_data_part_undu(act box, bool undo);
+	PersistentList<T>::act swap_data_part_undu(act box);
 	template<class J>
 	void signal_inside(PersistentMass<J>* box_mass);
 	template<class J>
@@ -664,7 +654,6 @@ void PersistentList<T>::undo_out(PersistentMass<J>* elem, int vers) {
 	box_undo.past_version = this->use_version;
 	box_undo.version = vers;
 	box_undo.kind_act = 9;
-	box_undo.undo = 1;
 	box_undo.elem = elem;
 	box_undo.elem->undo();
 	this->vector_undo.push_back(box_undo);
@@ -677,7 +666,6 @@ void PersistentList<T>::undo_out(PersistentList<J>* elem, int vers) {
 	box_undo.past_version = this->use_version;
 	box_undo.version = vers;
 	box_undo.kind_act = 9;
-	box_undo.undo = 1;
 	box_undo.elem = elem;
 	box_undo.elem->undo();
 	this->vector_undo.push_back(box_undo);
@@ -694,7 +682,6 @@ void PersistentList<T>::redo_out(PersistentMass<J>* elem, int vers) {
 	box_redo.past_version = this->use_version;
 	box_redo.version = vers;
 	box_redo.kind_act = 9;
-	box_redo.undo = 0;
 	box_redo.elem = elem;
 	box_redo.elem->redo();
 	this->vector_act.push_back(box_redo);
@@ -707,7 +694,6 @@ void PersistentList<T>::redo_out(PersistentList<J>* elem, int vers) {
 	box_redo.past_version = this->use_version;
 	box_redo.version = vers;
 	box_redo.kind_act = 9;
-	box_redo.undo = 0;
 	box_redo.elem = elem;
 	box_redo.elem->redo();
 	this->vector_act.push_back(box_redo);
@@ -729,7 +715,6 @@ void signal_outside(PersistentList<J>* point_list)
 		box.version = point_list->interior_list->version;
 		box.elem = point_list;
 		box.kind_act = 9;
-		box.undo = 0;
 		point_list->interior_list->vector_act.push_back(box);
 	}
 	else {
@@ -740,7 +725,6 @@ void signal_outside(PersistentList<J>* point_list)
 		box.version = point_list->interior_mass->version;
 		box.elem = point_list;
 		box.kind_act = 9;
-		box.undo = 0;
 		point_list->interior_mass->vector_act.push_back(box);
 	}
 }
@@ -757,7 +741,7 @@ PersistentList<T>::PersistentList()
 		kind = 1;
 	}
 	else if (name_type.find("class PersistentList") != (-1)) {
-		kind = 2;
+		kind = 1;
 	}
 	else {
 		kind = -1;
@@ -791,12 +775,11 @@ T& PersistentList<T>::set(const int i, const T& value)
 	version++;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	*iter_b = value;
 	vector_undo.clear();
 
-	if (kind == 2 || kind == 1) {
+	if ( kind == 1) {
 		auto* box = &*iter_b;
 		signal_inside(box);
 	}
@@ -820,13 +803,12 @@ void PersistentList<T>::push_back(const T& value)
 
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.push_back(value);
 	iter_b = list_data.begin();
 	iter = 0;
 	vector_undo.clear();
-	if (kind == 2 || kind == 1) {
+	if ( kind == 1) {
 		auto* box = &list_data.back();
 		signal_inside(box);
 	}
@@ -847,13 +829,12 @@ void PersistentList<T>::push_front(const T& value)
 	size++;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.push_front(value);
 	iter_b = list_data.begin();
 	iter = 0;
 	vector_undo.clear();
-	if (kind == 2 || kind == 1) {
+	if (kind == 1) {
 		auto* box = &list_data.front();
 		signal_inside(box);
 	}
@@ -874,7 +855,6 @@ void PersistentList<T>::pop_back()
 	size--;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.pop_back();
 	vector_undo.clear();
@@ -894,7 +874,6 @@ void PersistentList<T>::pop_front()
 	size--;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.pop_front();
 	iter_b = list_data.begin();
@@ -923,11 +902,10 @@ int PersistentList<T>::insert(const int i, const T& value)
 	size++;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.insert(iter_b, value);
 	vector_undo.clear();
-	if (kind == 2 || kind == 1) {
+	if (kind == 1) {
 		auto* box = &*iter_b;
 		signal_inside(box);
 	}
@@ -953,7 +931,6 @@ int PersistentList<T>::erase(const int i)
 	size--;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	vector_act.push_back(box);
 	list_data.erase(iter_b);
 	iter_b = list_data.begin();
@@ -976,7 +953,6 @@ void PersistentList<T>::clear()
 	size = 0;
 	use_version = version;
 	box.version = version;
-	box.undo = 0;
 	box.list_data = list_data;
 	vector_act.push_back(box);
 	list_data.clear();
@@ -987,13 +963,13 @@ void PersistentList<T>::clear()
 }
 
 template<class T>
-int PersistentList<T>::get_version()
+const int PersistentList<T>::get_version()
 {
-	return version;
+	return vector_act.size() - 1;
 }
 
 template<class T>
-int PersistentList<T>::get_size()
+const int PersistentList<T>::get_size()
 {
 	return size;
 }
@@ -1010,7 +986,7 @@ T& PersistentList<T>::get(int i) {
 }
 
 template<class T>
-typename PersistentList<T>::act PersistentList<T>::swap_data_part_undu(act box, bool undo) {
+typename PersistentList<T>::act PersistentList<T>::swap_data_part_undu(act box) {
 	act box_undo;
 
 	box_undo.past_version = use_version;
@@ -1021,7 +997,6 @@ typename PersistentList<T>::act PersistentList<T>::swap_data_part_undu(act box, 
 	box_undo.present_elem = box.past_elem;
 	box_undo.index_elem = box.index_elem;
 	box_undo.kind_act = box.kind_act;
-	box_undo.undo = undo;
 	return box_undo;
 }
 
@@ -1046,7 +1021,7 @@ void PersistentList<T>::undo()
 		}
 		*iter_b = box.past_elem;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -1054,7 +1029,7 @@ void PersistentList<T>::undo()
 		list_data.pop_back();
 		size--;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -1062,7 +1037,7 @@ void PersistentList<T>::undo()
 		list_data.pop_front();
 		size--;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		iter_b = list_data.begin();
 		iter = 0;
@@ -1072,7 +1047,7 @@ void PersistentList<T>::undo()
 		list_data.push_back(box.past_elem);
 		size++;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -1080,7 +1055,7 @@ void PersistentList<T>::undo()
 		list_data.push_front(box.past_elem);
 		size++;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		iter_b = list_data.begin();
 		iter = 0;
@@ -1095,7 +1070,7 @@ void PersistentList<T>::undo()
 		list_data.erase(iter_b);
 		size--;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -1108,7 +1083,7 @@ void PersistentList<T>::undo()
 		list_data.insert(iter_b, box.past_elem);
 		size++;
 
-		act box_undo = swap_data_part_undu(box, 1);
+		act box_undo = swap_data_part_undu(box);
 		vector_undo.push_back(box_undo);
 		break;
 	}
@@ -1119,7 +1094,6 @@ void PersistentList<T>::undo()
 		box_undo.version = use_version;
 		box_undo.list_data = box.list_data;
 		box_undo.kind_act = box.kind_act;
-		box_undo.undo = 1;
 		vector_undo.push_back(box_undo);
 
 		use_version = box.past_version;
@@ -1151,7 +1125,7 @@ void PersistentList<T>::redo()
 		}
 		*iter_b = box.past_elem;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -1159,7 +1133,7 @@ void PersistentList<T>::redo()
 		list_data.push_back(box.past_elem);
 		size++;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -1167,7 +1141,7 @@ void PersistentList<T>::redo()
 		list_data.push_front(box.past_elem);
 		size++;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -1175,7 +1149,7 @@ void PersistentList<T>::redo()
 		list_data.pop_back();
 		size--;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -1183,7 +1157,7 @@ void PersistentList<T>::redo()
 		list_data.pop_front();
 		size--;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -1195,7 +1169,7 @@ void PersistentList<T>::redo()
 		list_data.insert(iter_b, box.past_elem);
 		size++;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -1207,7 +1181,7 @@ void PersistentList<T>::redo()
 		list_data.erase(iter_b);
 		size--;
 
-		act box_redo = swap_data_part_undu(box, 0);
+		act box_redo = swap_data_part_undu(box);
 		vector_act.push_back(box_redo);
 		break;
 	}
@@ -1220,7 +1194,6 @@ void PersistentList<T>::redo()
 		box_redo.past_version = use_version;
 		box_redo.version = use_version;
 		box_redo.list_data = box.list_data;
-		box_redo.undo = 0;
 	}
 	case 9: {//undo_out
 		redo_out(box.elem, box.past_version);
@@ -1269,6 +1242,8 @@ int main()
 	cout << myList1.get(0).get_size() << endl;
 	myList1.redo();
 	cout << myList1.get(0).get(0) << endl;
+	cout<<"version: "<<myList1.get_version()<<endl;
+
 
 	PersistentMass< PersistentList<int>> myMass2;
 	PersistentList<int> myList2;
@@ -1280,6 +1255,7 @@ int main()
 	cout << myMass2.get(0).get_size() << endl;
 	myMass2.redo();
 	cout << myMass2.get(0).get(0) << endl;
+	cout << "version: " << myMass2.get_version() << endl;
 	return 0;
 }
 
